@@ -50,6 +50,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ slug, name, tags }),
     }),
+  updateProject: (project: Project) =>
+    request<Project>(`/projects/${project.slug}`, {
+      method: "PUT",
+      body: JSON.stringify(project),
+    }),
+  deleteProject: (slug: string) =>
+    request(`/projects/${slug}`, { method: "DELETE" }),
   getNotes: (slug: string) =>
     request<{ content: string }>(`/projects/${slug}/notes`),
   logNote: (slug: string, text: string) =>
@@ -67,6 +74,8 @@ export const api = {
     request(`/projects/${slug}/todos/${index}?done=${done}`, {
       method: "PATCH",
     }),
+  deleteTodo: (slug: string, index: number) =>
+    request(`/projects/${slug}/todos/${index}`, { method: "DELETE" }),
   getCanvas: (slug: string) => request<any>(`/projects/${slug}/canvas`),
   saveCanvas: (slug: string, payload: any) =>
     request(`/projects/${slug}/canvas`, {

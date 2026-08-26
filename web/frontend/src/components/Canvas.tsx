@@ -5,6 +5,14 @@ import { api } from "../api/client";
 
 const SAVE_DEBOUNCE_MS = 1000;
 
+const STATUS_COLOR: Record<string, string> = {
+  loading: "var(--ink-faint)",
+  ready: "var(--ink-faint)",
+  saving: "var(--pin-backlog)",
+  saved: "var(--pin-active)",
+  error: "var(--pin-blocked)",
+};
+
 export default function Canvas({ slug }: { slug: string }) {
   const editorRef = useRef<Editor | null>(null);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -16,17 +24,18 @@ export default function Canvas({ slug }: { slug: string }) {
     (editor: Editor) => {
       editorRef.current = editor;
 
+      // match the app's dark theme — background goes near-black, strokes/text light
+      editor.user.updateUserPreferences({ colorScheme: "dark" });
+
       api
         .getCanvas(slug)
         .then((data) => {
-          // only load if it looks like a real tldraw snapshot (has a "document" key);
-          // fresh projects start with our placeholder {nodes: [], edges: []} shape
           if (data && data.document) {
             loadSnapshot(editor.store, data);
           }
           setStatus("ready");
         })
-        .catch(() => setStatus("ready")); // no canvas yet — start blank
+        .catch(() => setStatus("ready"));
 
       const unsubscribe = editor.store.listen(
         () => {
@@ -61,15 +70,17 @@ export default function Canvas({ slug }: { slug: string }) {
       <div
         style={{
           position: "absolute",
-          top: 8,
-          right: 8,
+          top: 10,
+          right: 10,
           zIndex: 10,
-          fontSize: 12,
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: 0.5,
           padding: "4px 10px",
-          borderRadius: 6,
-          background: "#161b22",
-          color:
-            status === "error" ? "#f85149" : status === "saving" ? "#d29922" : "#7d8590",
+          borderRadius: 3,
+          background: "var(--card-bg)",
+          border: "0.5px solid var(--card-border)",
+          color: STATUS_COLOR[status],
         }}
       >
         {status === "loading" && "loading…"}
@@ -78,7 +89,15 @@ export default function Canvas({ slug }: { slug: string }) {
         {status === "saved" && "saved"}
         {status === "error" && "save failed"}
       </div>
-      <div style={{ height: "70vh", border: "1px solid #23262e", borderRadius: 8, overflow: "hidden" }}>
+      <div
+        style={{
+          height: "70vh",
+          border: "0.5px solid var(--card-border)",
+          borderRadius: 4,
+          overflow: "hidden",
+          boxShadow: "0 4px 14px rgba(0,0,0,0.5)",
+        }}
+      >
         <Tldraw onMount={handleMount} />
       </div>
     </div>

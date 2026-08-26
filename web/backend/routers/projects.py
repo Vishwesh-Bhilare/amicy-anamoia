@@ -89,3 +89,22 @@ def toggle_todo(slug: str, index: int, done: bool = True):
     except IndexError as e:
         raise HTTPException(status_code=404, detail=str(e))
     return {"index": index, "done": done}
+
+
+@router.delete("/{slug}")
+def delete_project(slug: str):
+    import shutil
+    d = storage.project_dir(slug)
+    if not d.exists():
+        raise HTTPException(status_code=404, detail=f"No project found: {slug}")
+    shutil.rmtree(d)
+    return {"deleted": slug}
+
+
+@router.delete("/{slug}/todos/{index}")
+def remove_todo(slug: str, index: int):
+    try:
+        storage.delete_todo(slug, index)
+    except IndexError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"deleted": index}

@@ -8,19 +8,30 @@ export default function App() {
       <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <header
           style={{
-            padding: "12px 24px",
-            borderBottom: "1px solid #23262e",
+            padding: "14px 28px",
+            borderBottom: "0.5px solid var(--card-border)",
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 12,
           }}
         >
-          <Link to="/" style={{ fontWeight: 700, fontSize: 18 }}>
+          <Link
+            to="/"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontWeight: 600,
+              fontSize: 14,
+              color: "var(--ink)",
+              letterSpacing: 0.5,
+            }}
+          >
             pt
           </Link>
-          <span style={{ color: "#7d8590", fontSize: 13 }}>project tracker</span>
+          <span style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
+            project board
+          </span>
         </header>
-        <main style={{ flex: 1, padding: 24 }}>
+        <main style={{ flex: 1, padding: "28px 32px" }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/project/:slug" element={<ProjectView />} />

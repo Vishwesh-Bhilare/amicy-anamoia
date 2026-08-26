@@ -26,53 +26,90 @@ export default function NotesPane({ slug }: { slug: string }) {
     }
   };
 
-  if (loading) return <p style={{ color: "#7d8590" }}>Loading notes…</p>;
+  if (loading) return <p style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 12 }}>loading…</p>;
+
+  // split raw markdown log into entries on the "---" separator written by storage.append_log
+  const entries = content
+    .split(/\n---\n/)
+    .map((e) => e.trim())
+    .filter(Boolean);
 
   return (
     <div>
-      <form onSubmit={handleLog} style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+      <form onSubmit={handleLog} style={{ display: "flex", gap: 8, marginBottom: 18 }}>
         <input
-          placeholder="Quick log entry…"
+          placeholder="quick log entry…"
           value={newEntry}
           onChange={(e) => setNewEntry(e.target.value)}
           style={{
             flex: 1,
             padding: "8px 12px",
-            borderRadius: 6,
-            border: "1px solid #23262e",
-            background: "#0f1115",
-            color: "#e6e6e6",
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            background: "var(--card-bg)",
+            border: "0.5px solid var(--card-border)",
+            borderRadius: 3,
+            color: "var(--ink)",
           }}
         />
         <button
           disabled={posting}
           style={{
             padding: "8px 16px",
-            borderRadius: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            borderRadius: 3,
             border: "none",
-            background: "#238636",
-            color: "#fff",
+            background: "var(--pin-active)",
+            color: "#1c1c1e",
             fontWeight: 600,
           }}
         >
-          {posting ? "Logging…" : "Log"}
+          {posting ? "…" : "log"}
         </button>
       </form>
 
-      <pre
-        style={{
-          whiteSpace: "pre-wrap",
-          fontFamily: "inherit",
-          background: "#161b22",
-          padding: 16,
-          borderRadius: 8,
-          lineHeight: 1.6,
-          maxHeight: 500,
-          overflowY: "auto",
-        }}
-      >
-        {content || "No notes yet."}
-      </pre>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 520, overflowY: "auto" }}>
+        {entries.length === 0 && (
+          <p style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 12 }}>no notes yet</p>
+        )}
+        {entries
+          .slice()
+          .reverse()
+          .map((entry, i) => {
+            const [firstLine, ...rest] = entry.split("\n");
+            const timestampMatch = firstLine.match(/\*\*(.+?)\*\*/);
+            const timestamp = timestampMatch ? timestampMatch[1] : firstLine;
+            const body = timestampMatch ? rest.join("\n").trim() : entry;
+            return (
+              <div
+                key={i}
+                style={{
+                  background: "var(--card-bg)",
+                  border: "0.5px solid var(--card-border)",
+                  borderRadius: 3,
+                  padding: "10px 14px",
+                }}
+              >
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-faint)" }}>
+                  {timestamp}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 13,
+                    color: "var(--ink)",
+                    marginTop: 4,
+                    lineHeight: 1.6,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {body}
+                </div>
+              </div>
+            );
+          })}
+      </div>
     </div>
   );
 }

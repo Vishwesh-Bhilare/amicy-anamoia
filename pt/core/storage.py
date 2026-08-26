@@ -179,3 +179,14 @@ def summarize_project(slug: str) -> ProjectSummary:
 
 def summarize_all() -> list[ProjectSummary]:
     return [summarize_project(slug) for slug in list_project_slugs()]
+
+
+def delete_todo(slug: str, index: int) -> None:
+    path = todo_md_path(slug)
+    lines = path.read_text().splitlines()
+    todo_line_positions = [i for i, l in enumerate(lines) if TODO_LINE_RE.match(l)]
+    if index >= len(todo_line_positions):
+        raise IndexError(f"No todo at index {index}")
+    line_no = todo_line_positions[index]
+    del lines[line_no]
+    path.write_text("\n".join(lines) + ("\n" if lines else ""))
