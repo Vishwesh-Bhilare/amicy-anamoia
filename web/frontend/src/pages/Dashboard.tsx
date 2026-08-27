@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ProjectSummary } from "../api/client";
+import Spinner from "../components/Spinner";
 
 const STATUS_ORDER: ProjectSummary["status"][] = ["active", "blocked", "backlog", "done"];
 
@@ -11,11 +12,10 @@ const PIN_COLOR: Record<ProjectSummary["status"], string> = {
   done: "var(--pin-done)",
 };
 
-// deterministic small rotation per card so it doesn't reshuffle on re-render
 function rotationFor(slug: string): number {
   let hash = 0;
   for (const c of slug) hash = (hash * 31 + c.charCodeAt(0)) % 360;
-  return (hash % 5) - 2; // -2deg .. 2deg
+  return (hash % 5) - 2;
 }
 
 export default function Dashboard() {
@@ -26,6 +26,9 @@ export default function Dashboard() {
   const [newSlug, setNewSlug] = useState("");
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState("");
+  const slugInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const load = () => {
     setLoading(true);
@@ -37,6 +40,42 @@ export default function Dashboard() {
   };
 
   useEffect(load, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      if (e.key === "n" && !typing) {
+        e.preventDefault();
+        setShowNewCard(true);
+      }
+      if (e.key === "/" && !typing) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === "Escape" && typing && target === searchInputRef.current) {
+        setQuery("");
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    if (showNewCard) slugInputRef.current?.focus();
+  }, [showNewCard]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return projects;
+    return projects.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.slug.toLowerCase().includes(q) ||
+        p.tags.some((t) => t.toLowerCase().includes(q))
+    );
+  }, [projects, query]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,26 +94,72 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) return <p style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)" }}>loading…</p>;
+  if (loading) return <Spinner />;
   if (error) return <p style={{ color: "var(--pin-blocked)", fontFamily: "var(--font-mono)" }}>error: {error}</p>;
 
   return (
     <div>
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          color: "var(--ink-faint)",
-          letterSpacing: 1,
-          marginBottom: 20,
-        }}
-      >
-        {projects.length} PROJECT{projects.length !== 1 ? "S" : ""} PINNED
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            color: "var(--ink-faint)",
+            letterSpacing: 1,
+          }}
+        >
+          {projects.length > 0
+            ? `${filtered.length}/${projects.length} PROJECT${projects.length !== 1 ? "S" : ""}`
+            : "BOARD IS EMPTY"}
+          <span style={{ marginLeft: 10, opacity: 0.6 }}>"n" to pin · "/" to search</span>
+        </div>
+
+        {projects.length > 0 && (
+          <input
+            ref={searchInputRef}
+            placeholder="search name, slug, tag…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{
+              padding: "5px 10px",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              background: "var(--card-bg)",
+              border: "0.5px solid var(--card-border)",
+              borderRadius: 3,
+              color: "var(--ink)",
+              width: 200,
+              marginLeft: "auto",
+            }}
+          />
+        )}
       </div>
+
+      {projects.length === 0 && !showNewCard && (
+        <div
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: 13,
+            color: "var(--ink-muted)",
+            marginBottom: 20,
+            maxWidth: 420,
+            lineHeight: 1.6,
+          }}
+        >
+          Nothing pinned yet. Every project gets its own card with notes, a todo list, and a canvas for
+          flowcharts or scribbles.
+        </div>
+      )}
+
+      {projects.length > 0 && filtered.length === 0 && (
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink-faint)" }}>
+          no matches for "{query}"
+        </p>
+      )}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 28 }}>
         {STATUS_ORDER.flatMap((status) =>
-          projects
+          filtered
             .filter((p) => p.status === status)
             .map((p) => <ProjectCard key={p.slug} project={p} />)
         )}
@@ -113,16 +198,22 @@ export default function Dashboard() {
             }}
           >
             <input
-              autoFocus
+              ref={slugInputRef}
               placeholder="slug"
               value={newSlug}
               onChange={(e) => setNewSlug(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setShowNewCard(false);
+              }}
               style={cardInputStyle}
             />
             <input
               placeholder="name (optional)"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setShowNewCard(false);
+              }}
               style={cardInputStyle}
             />
             <div style={{ display: "flex", gap: 6 }}>
@@ -155,7 +246,7 @@ export default function Dashboard() {
                   color: "var(--ink-muted)",
                 }}
               >
-                x
+                esc
               </button>
             </div>
           </form>
@@ -225,6 +316,11 @@ function ProjectCard({ project }: { project: ProjectSummary }) {
       {project.tags.length > 0 && (
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-faint)", marginTop: 4 }}>
           {project.tags.join(" · ")}
+        </div>
+      )}
+      {project.deadline && (
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--ink-faint)", marginTop: 4 }}>
+          due {new Date(project.deadline).toLocaleDateString()}
         </div>
       )}
       {project.stale && (

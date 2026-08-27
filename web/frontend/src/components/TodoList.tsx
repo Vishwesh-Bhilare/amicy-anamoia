@@ -1,16 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, TodoItem } from "../api/client";
+import Spinner from "./Spinner";
 
 export default function TodoList({ slug }: { slug: string }) {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newText, setNewText] = useState("");
   const [loading, setLoading] = useState(true);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const load = () => {
     api.getTodos(slug).then(setTodos).finally(() => setLoading(false));
   };
 
   useEffect(load, [slug]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      if (e.key === "n" && !typing) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +45,7 @@ export default function TodoList({ slug }: { slug: string }) {
     load();
   };
 
-  if (loading)
-    return <p style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 12 }}>loading…</p>;
+  if (loading) return <Spinner label="loading todos" />;
 
   const open = todos.filter((t) => !t.done);
   const done = todos.filter((t) => t.done);
@@ -40,7 +54,8 @@ export default function TodoList({ slug }: { slug: string }) {
     <div>
       <form onSubmit={handleAdd} style={{ display: "flex", gap: 8, marginBottom: 18 }}>
         <input
-          placeholder="add a task…"
+          ref={inputRef}
+          placeholder='add a task… (press "n" to focus)'
           value={newText}
           onChange={(e) => setNewText(e.target.value)}
           style={{

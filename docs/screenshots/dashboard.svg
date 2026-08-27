@@ -1,0 +1,70 @@
+<svg width="960" height="560" viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+<rect width="960" height="560" fill="#1c1c1e"/>
+<defs>
+<pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse">
+<circle cx="1" cy="1" r="0.6" fill="rgba(255,255,255,0.04)"/>
+</pattern>
+</defs>
+<rect width="960" height="560" fill="url(#dots)"/>
+
+<line x1="0" y1="52" x2="960" y2="52" stroke="#3a362f" stroke-width="1"/>
+<text x="28" y="34" fill="#e8e3d5" font-size="15" font-weight="600">pt</text>
+<text x="52" y="34" fill="#736a57" font-size="12">project board</text>
+
+<text x="28" y="86" fill="#a89b7e" font-size="11" letter-spacing="1">5 PROJECTS</text>
+<text x="140" y="86" fill="#5a5548" font-size="11">"n" to pin &#183; "/" to search</text>
+<rect x="740" y="70" width="190" height="24" rx="3" fill="#2a2724" stroke="#3a362f"/>
+<text x="750" y="86" fill="#736a57" font-size="11">search name, slug, tag&#8230;</text>
+
+<!-- card 1 -->
+<g transform="translate(28,120) rotate(-2)">
+<rect x="0" y="-8" width="44" height="14" fill="rgba(120,116,104,0.25)" transform="translate(60,0)"/>
+<rect width="168" height="148" rx="3" fill="#2a2724" stroke="#3a362f"/>
+<circle cx="150" cy="20" r="4.5" fill="#b4623e"/>
+<line x1="14" y1="46" x2="154" y2="46" stroke="#3a362f"/>
+<text x="14" y="38" fill="#e8e3d5" font-size="14" font-style="italic">FractureLens</text>
+<text x="14" y="68" fill="#a89b7e" font-size="10">4/9 open</text>
+<text x="14" y="84" fill="#736a57" font-size="9">fracture &#183; ct-scan</text>
+<text x="14" y="110" fill="#736a57" font-size="9">due 9/15/2026</text>
+</g>
+
+<!-- card 2 -->
+<g transform="translate(216,124) rotate(1.5)">
+<rect x="0" y="-8" width="44" height="14" fill="rgba(120,116,104,0.25)" transform="translate(60,0)"/>
+<rect width="168" height="148" rx="3" fill="#2a2724" stroke="#3a362f"/>
+<circle cx="150" cy="20" r="4.5" fill="#b4623e"/>
+<line x1="14" y1="46" x2="154" y2="46" stroke="#3a362f"/>
+<text x="14" y="38" fill="#e8e3d5" font-size="14" font-style="italic">solar-flare-det.</text>
+<text x="14" y="68" fill="#a89b7e" font-size="10">2/6 open</text>
+<text x="14" y="84" fill="#736a57" font-size="9">isro &#183; aditya-l1</text>
+</g>
+
+<!-- card 3 blocked -->
+<g transform="translate(404,118) rotate(-1)">
+<rect x="0" y="-8" width="44" height="14" fill="rgba(120,116,104,0.25)" transform="translate(60,0)"/>
+<rect width="168" height="148" rx="3" fill="#2a2724" stroke="#4a2e28"/>
+<circle cx="150" cy="20" r="4.5" fill="#a1493e"/>
+<line x1="14" y1="46" x2="154" y2="46" stroke="#3a362f"/>
+<text x="14" y="38" fill="#e8e3d5" font-size="14" font-style="italic">quantum-resist</text>
+<text x="14" y="68" fill="#a89b7e" font-size="10">1/5 open</text>
+<text x="14" y="84" fill="#736a57" font-size="9">hack4humanity</text>
+<text x="14" y="118" fill="#a1493e" font-size="9">&#9873; stale</text>
+</g>
+
+<!-- card 4 backlog -->
+<g transform="translate(592,122) rotate(2)">
+<rect x="0" y="-8" width="44" height="14" fill="rgba(120,116,104,0.25)" transform="translate(60,0)"/>
+<rect width="168" height="148" rx="3" fill="#2a2724" stroke="#3a362f"/>
+<circle cx="150" cy="20" r="4.5" fill="#8a7f63"/>
+<line x1="14" y1="46" x2="154" y2="46" stroke="#3a362f"/>
+<text x="14" y="38" fill="#e8e3d5" font-size="14" font-style="italic">reading-nook</text>
+<text x="14" y="68" fill="#a89b7e" font-size="10">3/8 open</text>
+<text x="14" y="84" fill="#736a57" font-size="9">gift-project</text>
+</g>
+
+<!-- new card dashed -->
+<g transform="translate(780,120)">
+<rect width="152" height="148" rx="3" fill="none" stroke="#3a362f" stroke-width="1.5" stroke-dasharray="5,4"/>
+<text x="76" y="80" fill="#736a57" font-size="12" text-anchor="middle">+ pin a project</text>
+</g>
+</svg>

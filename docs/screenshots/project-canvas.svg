@@ -1,0 +1,47 @@
+<svg width="960" height="560" viewBox="0 0 960 560" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">
+<rect width="960" height="560" fill="#1c1c1e"/>
+<defs><pattern id="dots4" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.6" fill="rgba(255,255,255,0.04)"/></pattern></defs>
+<rect width="960" height="560" fill="url(#dots4)"/>
+<line x1="0" y1="52" x2="960" y2="52" stroke="#3a362f"/>
+<text x="28" y="34" fill="#e8e3d5" font-size="15" font-weight="600">pt</text>
+<text x="52" y="34" fill="#736a57" font-size="12">project board</text>
+
+<text x="28" y="80" fill="#736a57" font-size="11">&#8592; board</text>
+
+<rect x="28" y="96" width="904" height="60" rx="4" fill="#2a2724" stroke="#3a362f"/>
+<text x="48" y="132" fill="#e8e3d5" font-size="20" font-style="italic">FractureLens</text>
+
+<rect x="28" y="176" width="90" height="26" rx="3" fill="none" stroke="#3a362f"/>
+<text x="42" y="192" fill="#736a57" font-size="11">[ notes ]</text>
+<rect x="126" y="176" width="76" height="26" rx="3" fill="none" stroke="#3a362f"/>
+<text x="142" y="192" fill="#736a57" font-size="11">[ todo ]</text>
+<rect x="210" y="176" width="90" height="26" rx="3" fill="#2a2724" stroke="#b4623e"/>
+<text x="224" y="192" fill="#e8e3d5" font-size="11">[ canvas ]</text>
+
+<rect x="28" y="222" width="904" height="310" rx="4" fill="#111214" stroke="#3a362f"/>
+<rect x="800" y="234" width="46" height="20" rx="3" fill="#2a2724" stroke="#3a362f"/>
+<text x="810" y="248" fill="#a89b7e" font-size="9">saved</text>
+
+<g stroke="#c9c4b6" fill="none" stroke-width="1.6">
+<rect x="80" y="300" width="120" height="60" rx="6"/>
+<rect x="290" y="300" width="120" height="60" rx="6"/>
+<rect x="500" y="260" width="130" height="60" rx="6"/>
+<rect x="500" y="360" width="130" height="60" rx="6"/>
+<path d="M200,330 L290,330" marker-end="url(#arrow)"/>
+<path d="M410,320 L470,290 L500,290" marker-end="url(#arrow)"/>
+<path d="M410,340 L470,390 L500,390" marker-end="url(#arrow)"/>
+</g>
+<defs>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+<path d="M0,0 L6,3 L0,6 Z" fill="#c9c4b6"/>
+</marker>
+</defs>
+<g fill="#e8e3d5" font-size="12" text-anchor="middle">
+<text x="140" y="334">load .mha</text>
+<text x="350" y="334">segment</text>
+<text x="565" y="294">2D view</text>
+<text x="565" y="394">3D mesh</text>
+</g>
+<text x="700" y="500" fill="#736a57" font-size="10">freehand scribble &#8594;</text>
+<path d="M760,470 C 790,440 820,500 850,460 S 890,430 900,470" stroke="#5ec8d8" fill="none" stroke-width="2"/>
+</svg>

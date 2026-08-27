@@ -1,17 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
+import Spinner from "./Spinner";
+import { renderInlineMarkdown } from "./markdown";
 
 export default function NotesPane({ slug }: { slug: string }) {
   const [content, setContent] = useState("");
   const [newEntry, setNewEntry] = useState("");
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const load = () => {
     api.getNotes(slug).then((r) => setContent(r.content)).finally(() => setLoading(false));
   };
 
   useEffect(load, [slug]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const typing = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      if (e.key === "n" && !typing) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const handleLog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +42,8 @@ export default function NotesPane({ slug }: { slug: string }) {
     }
   };
 
-  if (loading) return <p style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 12 }}>loading…</p>;
+  if (loading) return <Spinner label="loading notes" />;
 
-  // split raw markdown log into entries on the "---" separator written by storage.append_log
   const entries = content
     .split(/\n---\n/)
     .map((e) => e.trim())
@@ -38,7 +53,8 @@ export default function NotesPane({ slug }: { slug: string }) {
     <div>
       <form onSubmit={handleLog} style={{ display: "flex", gap: 8, marginBottom: 18 }}>
         <input
-          placeholder="quick log entry…"
+          ref={inputRef}
+          placeholder='quick log entry… (**bold**, `code`, [text](url) supported)'
           value={newEntry}
           onChange={(e) => setNewEntry(e.target.value)}
           style={{
@@ -71,7 +87,9 @@ export default function NotesPane({ slug }: { slug: string }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 520, overflowY: "auto" }}>
         {entries.length === 0 && (
-          <p style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 12 }}>no notes yet</p>
+          <p style={{ color: "var(--ink-faint)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
+            no notes yet — first entry starts the log
+          </p>
         )}
         {entries
           .slice()
@@ -101,10 +119,9 @@ export default function NotesPane({ slug }: { slug: string }) {
                     color: "var(--ink)",
                     marginTop: 4,
                     lineHeight: 1.6,
-                    whiteSpace: "pre-wrap",
                   }}
                 >
-                  {body}
+                  {renderInlineMarkdown(body)}
                 </div>
               </div>
             );
