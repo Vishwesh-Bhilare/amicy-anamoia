@@ -19,14 +19,21 @@ export default function Canvas({ slug }: { slug: string }) {
   const [status, setStatus] = useState<"loading" | "ready" | "saving" | "saved" | "error">(
     "loading"
   );
+  const [gridMode, setGridMode] = useState(false);
+
+  // Sync grid toggle → tldraw instance state
+  const applyGridMode = useCallback((on: boolean) => {
+    editorRef.current?.updateInstanceState({ isGridMode: on });
+  }, []);
 
   const handleMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor;
 
-      // match the app's dark theme — background goes near-black, strokes/text light
+      // Match the app's dark theme
       editor.user.updateUserPreferences({ colorScheme: "dark" });
 
+      // Restore canvas from backend
       api
         .getCanvas(slug)
         .then((data) => {
@@ -37,6 +44,7 @@ export default function Canvas({ slug }: { slug: string }) {
         })
         .catch(() => setStatus("ready"));
 
+      // Autosave on every user edit
       const unsubscribe = editor.store.listen(
         () => {
           setStatus("saving");
@@ -65,30 +73,72 @@ export default function Canvas({ slug }: { slug: string }) {
     };
   }, []);
 
+  const handleToggleGrid = () => {
+    const next = !gridMode;
+    setGridMode(next);
+    applyGridMode(next);
+  };
+
   return (
     <div style={{ position: "relative" }}>
+      {/* ── HUD ─────────────────────────────────────────────────────────────── */}
       <div
         style={{
           position: "absolute",
           top: 10,
           right: 10,
           zIndex: 10,
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          letterSpacing: 0.5,
-          padding: "4px 10px",
-          borderRadius: 3,
-          background: "var(--card-bg)",
-          border: "0.5px solid var(--card-border)",
-          color: STATUS_COLOR[status],
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
         }}
       >
-        {status === "loading" && "loading…"}
-        {status === "ready" && "ready"}
-        {status === "saving" && "saving…"}
-        {status === "saved" && "saved"}
-        {status === "error" && "save failed"}
+        {/* Grid / snap toggle */}
+        <button
+          onClick={handleToggleGrid}
+          title={
+            gridMode
+              ? "Grid snap on — shapes and arrows snap to grid (like Excalidraw). Click to turn off."
+              : "Turn on grid snap — shapes and arrows will snap to a grid as you draw."
+          }
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: 0.5,
+            padding: "4px 10px",
+            borderRadius: 3,
+            background: gridMode ? "var(--pin-active)" : "var(--card-bg)",
+            border: `0.5px solid ${gridMode ? "var(--pin-active)" : "var(--card-border)"}`,
+            color: gridMode ? "#1c1c1e" : "var(--ink-muted)",
+            cursor: "pointer",
+            transition: "background 0.15s, color 0.15s, border-color 0.15s",
+          }}
+        >
+          {gridMode ? "⊞ snap on" : "⊟ snap off"}
+        </button>
+
+        {/* Autosave pill */}
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: 0.5,
+            padding: "4px 10px",
+            borderRadius: 3,
+            background: "var(--card-bg)",
+            border: "0.5px solid var(--card-border)",
+            color: STATUS_COLOR[status],
+          }}
+        >
+          {status === "loading" && "loading…"}
+          {status === "ready" && "ready"}
+          {status === "saving" && "saving…"}
+          {status === "saved" && "saved"}
+          {status === "error" && "save failed"}
+        </div>
       </div>
+
+      {/* ── Canvas ────────────────────────────────────────────────────────── */}
       <div
         style={{
           height: "70vh",
