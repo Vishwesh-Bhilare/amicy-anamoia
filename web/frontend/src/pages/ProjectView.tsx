@@ -1,81 +1,45 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, Project } from "../api/client";
-import TodoList from "../components/TodoList";
-import NotesPane from "../components/NotesPane";
-import Canvas from "../components/Canvas";
-import Spinner from "../components/Spinner";
+import TodoList   from "../components/TodoList";
+import NotesPane  from "../components/NotesPane";
+import Canvas     from "../components/Canvas";
+import Spinner    from "../components/Spinner";
 
-type Tab = "notes" | "todo" | "canvas";
+type PanelTab = "notes" | "todo";
 
 const STATUSES = ["active", "blocked", "backlog", "done"] as const;
+type StatusVal = typeof STATUSES[number];
 
-const PIN_COLOR: Record<string, string> = {
-  active: "var(--pin-active)",
-  blocked: "var(--pin-blocked)",
-  backlog: "var(--pin-backlog)",
-  done: "var(--pin-done)",
+// Which CSS class to apply to the active status button
+const statusClass: Record<StatusVal, string> = {
+  active:  "active-status",
+  blocked: "blocked-status",
+  backlog: "backlog-status",
+  done:    "done-status",
 };
 
 export default function ProjectView() {
-  const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const [project, setProject] = useState<Project | null>(null);
-  const [tab, setTab] = useState<Tab>("notes");
-  const [error, setError] = useState<string | null>(null);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
-  const [newTag, setNewTag] = useState("");
-  const [addingTag, setAddingTag] = useState(false);
-  const tagInputRef = useRef<HTMLInputElement>(null);
+  const { slug }   = useParams<{ slug: string }>();
+  const navigate   = useNavigate();
+  const [project, setProject]               = useState<Project | null>(null);
+  const [tab, setTab]                       = useState<PanelTab>("notes");
+  const [error, setError]                   = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete]   = useState(false);
+  const [newTag, setNewTag]                 = useState("");
+  const [addingTag, setAddingTag]           = useState(false);
+  const tagRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!slug) return;
     api.getProject(slug).then(setProject).catch((e) => setError(e.message));
   }, [slug]);
 
-  useEffect(() => {
-    if (addingTag) tagInputRef.current?.focus();
-  }, [addingTag]);
+  useEffect(() => { if (addingTag) tagRef.current?.focus(); }, [addingTag]);
 
   const persist = async (updated: Project) => {
-    try {
-      await api.updateProject(updated);
-      setProject(updated);
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const handleStatusChange = async (status: string) => {
-    if (!project) return;
-    setSavingStatus(true);
-    await persist({ ...project, status });
-    setSavingStatus(false);
-  };
-
-  const handleDeadlineChange = async (value: string) => {
-    if (!project) return;
-    await persist({ ...project, deadline: value ? new Date(value).toISOString() : null });
-  };
-
-  const handleAddTag = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!project || !newTag.trim()) return;
-    const tag = newTag.trim();
-    if (project.tags.includes(tag)) {
-      setNewTag("");
-      setAddingTag(false);
-      return;
-    }
-    await persist({ ...project, tags: [...project.tags, tag] });
-    setNewTag("");
-    setAddingTag(false);
-  };
-
-  const handleRemoveTag = async (tag: string) => {
-    if (!project) return;
-    await persist({ ...project, tags: project.tags.filter((t) => t !== tag) });
+    try { await api.updateProject(updated); setProject(updated); }
+    catch (e: any) { setError(e.message); }
   };
 
   const handleDelete = async () => {
@@ -84,257 +48,124 @@ export default function ProjectView() {
     navigate("/");
   };
 
-  if (!slug) return null;
-  if (error)
-    return <p style={{ color: "var(--pin-blocked)", fontFamily: "var(--font-mono)" }}>error: {error}</p>;
-  if (!project) return <Spinner label="loading project" />;
+  const handleAddTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project || !newTag.trim()) return;
+    const tag = newTag.trim();
+    if (!project.tags.includes(tag)) await persist({ ...project, tags: [...project.tags, tag] });
+    setNewTag(""); setAddingTag(false);
+  };
 
-  const deadlineValue = project.deadline ? project.deadline.slice(0, 10) : "";
+  if (!slug) return null;
+  if (error)  return <div style={{ padding: 24, fontSize: 12, color: "var(--s-blocked)", fontFamily: "var(--font-mono)" }}>error: {error}</div>;
+  if (!project) return <div style={{ padding: 24 }}><Spinner label="loading" /></div>;
+
+  const deadlineVal = project.deadline ? project.deadline.slice(0, 10) : "";
 
   return (
-    <div>
-      <Link
-        to="/"
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          color: "var(--ink-faint)",
-          display: "inline-block",
-          marginBottom: 16,
-        }}
-      >
-        ← board
-      </Link>
+    <div className="project-layout">
 
-      <div
-        style={{
-          background: "var(--card-bg)",
-          border: "0.5px solid var(--card-border)",
-          borderRadius: 4,
-          boxShadow: "0 4px 14px rgba(0,0,0,0.5)",
-          padding: "20px 24px",
-          position: "relative",
-          marginBottom: 20,
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: -8,
-            left: 80,
-            width: 56,
-            height: 16,
-            background: "var(--tape)",
-          }}
-        />
+      {/* ── Sidebar ──────────────────────────────────────────────────── */}
+      <aside className="project-sidebar">
+        <Link to="/" className="sidebar-back">← board</Link>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <div style={{ fontFamily: "var(--font-serif)", fontSize: 22, color: "var(--ink)" }}>
-              {project.name}
-            </div>
+        <div className="sidebar-name">{project.name}</div>
+        {project.summary && <div className="sidebar-summary">{project.summary}</div>}
 
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-              {project.tags.map((tag) => (
-                <span
-                  key={tag}
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                    color: "var(--ink-muted)",
-                    border: "0.5px solid var(--card-border)",
-                    borderRadius: 3,
-                    padding: "2px 6px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  {tag}
-                  <button
-                    onClick={() => handleRemoveTag(tag)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "var(--ink-faint)",
-                      cursor: "pointer",
-                      fontSize: 10,
-                      padding: 0,
-                      lineHeight: 1,
-                    }}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-
-              {!addingTag ? (
-                <button
-                  onClick={() => setAddingTag(true)}
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 10,
-                    color: "var(--ink-faint)",
-                    background: "transparent",
-                    border: "0.5px dashed var(--card-border)",
-                    borderRadius: 3,
-                    padding: "2px 6px",
-                  }}
-                >
-                  + tag
-                </button>
-              ) : (
-                <form onSubmit={handleAddTag} style={{ display: "inline-flex" }}>
-                  <input
-                    ref={tagInputRef}
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onBlur={() => !newTag && setAddingTag(false)}
-                    onKeyDown={(e) => e.key === "Escape" && setAddingTag(false)}
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      background: "var(--board-bg)",
-                      border: "0.5px solid var(--card-border)",
-                      borderRadius: 3,
-                      color: "var(--ink)",
-                      padding: "2px 6px",
-                      width: 70,
-                    }}
-                  />
-                </form>
-              )}
-            </div>
-
-            <div style={{ marginTop: 10 }}>
-              <label style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--ink-faint)", marginRight: 6 }}>
-                deadline
-              </label>
-              <input
-                type="date"
-                value={deadlineValue}
-                onChange={(e) => handleDeadlineChange(e.target.value)}
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  background: "var(--board-bg)",
-                  border: "0.5px solid var(--card-border)",
-                  borderRadius: 3,
-                  color: "var(--ink)",
-                  padding: "3px 6px",
-                }}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span
-              style={{
-                width: 9,
-                height: 9,
-                borderRadius: "50%",
-                background: PIN_COLOR[project.status] ?? "var(--pin-backlog)",
-                display: "inline-block",
-              }}
-            />
-            <select
-              value={project.status}
-              disabled={savingStatus}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                background: "var(--board-bg)",
-                border: "0.5px solid var(--card-border)",
-                borderRadius: 3,
-                color: "var(--ink)",
-                padding: "5px 8px",
-              }}
-            >
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-
-            {!confirmingDelete ? (
+        {/* Status */}
+        <div className="sidebar-section">
+          <div className="sidebar-label">Status</div>
+          <div className="status-grid">
+            {STATUSES.map((s) => (
               <button
-                onClick={() => setConfirmingDelete(true)}
-                title="delete project"
-                style={{
-                  background: "transparent",
-                  border: "0.5px solid var(--card-border)",
-                  borderRadius: 3,
-                  color: "var(--ink-faint)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  padding: "5px 8px",
-                }}
+                key={s}
+                onClick={() => persist({ ...project, status: s })}
+                className={`status-btn${project.status === s ? " " + statusClass[s] : ""}`}
               >
-                delete
+                {s}
               </button>
-            ) : (
-              <span style={{ display: "flex", gap: 4 }}>
+            ))}
+          </div>
+        </div>
+
+        {/* Deadline */}
+        <div className="sidebar-section">
+          <div className="sidebar-label">Deadline</div>
+          <input
+            type="date"
+            className="sidebar-date"
+            value={deadlineVal}
+            onChange={(e) =>
+              persist({ ...project, deadline: e.target.value ? new Date(e.target.value).toISOString() : null })
+            }
+          />
+        </div>
+
+        {/* Tags */}
+        <div className="sidebar-section">
+          <div className="sidebar-label">Tags</div>
+          <div className="tags-wrap">
+            {project.tags.map((tag) => (
+              <span key={tag} className="tag-chip">
+                {tag}
                 <button
-                  onClick={handleDelete}
-                  style={{
-                    background: "var(--pin-blocked)",
-                    border: "none",
-                    borderRadius: 3,
-                    color: "#1c1c1e",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: "5px 8px",
-                  }}
-                >
-                  confirm
-                </button>
-                <button
-                  onClick={() => setConfirmingDelete(false)}
-                  style={{
-                    background: "transparent",
-                    border: "0.5px solid var(--card-border)",
-                    borderRadius: 3,
-                    color: "var(--ink-faint)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    padding: "5px 8px",
-                  }}
-                >
-                  cancel
-                </button>
+                  className="tag-remove"
+                  onClick={() => persist({ ...project, tags: project.tags.filter((t) => t !== tag) })}
+                >×</button>
               </span>
+            ))}
+            {!addingTag ? (
+              <button className="tag-add-btn" onClick={() => setAddingTag(true)}>+ add</button>
+            ) : (
+              <form onSubmit={handleAddTag}>
+                <input
+                  ref={tagRef}
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  onBlur={() => !newTag && setAddingTag(false)}
+                  onKeyDown={(e) => e.key === "Escape" && setAddingTag(false)}
+                  className="tag-input"
+                  placeholder="tag…"
+                />
+              </form>
             )}
           </div>
         </div>
+
+        <div className="sidebar-spacer" />
+
+        {/* Delete */}
+        {!confirmDelete ? (
+          <button className="delete-btn" onClick={() => setConfirmDelete(true)}>Delete project</button>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <button className="delete-btn confirm" onClick={handleDelete}>Confirm delete</button>
+            <button className="delete-btn" onClick={() => setConfirmDelete(false)}>Cancel</button>
+          </div>
+        )}
+      </aside>
+
+      {/* ── Notes / Todo panel ───────────────────────────────────────── */}
+      <div className="project-panel">
+        <div className="panel-tabs">
+          {(["notes", "todo"] as PanelTab[]).map((t) => (
+            <button
+              key={t}
+              className={`panel-tab${tab === t ? " active" : ""}`}
+              onClick={() => setTab(t)}
+            >
+              {t === "notes" ? "Notes" : "Tasks"}
+            </button>
+          ))}
+        </div>
+        <div className="panel-body">
+          {tab === "notes" && <NotesPane slug={slug} />}
+          {tab === "todo"  && <TodoList  slug={slug} />}
+        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
-        {(["notes", "todo", "canvas"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{
-              padding: "6px 14px",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-              letterSpacing: 0.5,
-              background: tab === t ? "var(--card-bg)" : "transparent",
-              border: tab === t ? "0.5px solid var(--pin-active)" : "0.5px solid var(--card-border)",
-              borderRadius: 3,
-              color: tab === t ? "var(--ink)" : "var(--ink-faint)",
-            }}
-          >
-            [ {t} ]
-          </button>
-        ))}
-      </div>
-
-      {tab === "notes" && <NotesPane slug={slug} />}
-      {tab === "todo" && <TodoList slug={slug} />}
-      {tab === "canvas" && <Canvas slug={slug} />}
+      {/* ── Canvas — fills remaining space ───────────────────────────── */}
+      <Canvas slug={slug} />
     </div>
   );
 }

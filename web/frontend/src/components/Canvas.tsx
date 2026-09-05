@@ -1,155 +1,96 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Tldraw, Editor, getSnapshot, loadSnapshot } from "tldraw";
 import "tldraw/tldraw.css";
 import { api } from "../api/client";
 
-const SAVE_DEBOUNCE_MS = 1000;
-
-const STATUS_COLOR: Record<string, string> = {
-  loading: "var(--ink-faint)",
-  ready: "var(--ink-faint)",
-  saving: "var(--pin-backlog)",
-  saved: "var(--pin-active)",
-  error: "var(--pin-blocked)",
-};
+const SAVE_MS = 1000;
+type Status = "loading" | "ready" | "saving" | "saved" | "error";
 
 export default function Canvas({ slug }: { slug: string }) {
   const editorRef = useRef<Editor | null>(null);
-  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "saving" | "saved" | "error">(
-    "loading"
-  );
-  const [gridMode, setGridMode] = useState(false);
+  const timerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [status, setStatus] = useState<Status>("loading");
+  const [grid, setGrid]     = useState(false);
 
-  // Sync grid toggle → tldraw instance state
-  const applyGridMode = useCallback((on: boolean) => {
-    editorRef.current?.updateInstanceState({ isGridMode: on });
-  }, []);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-  const handleMount = useCallback(
-    (editor: Editor) => {
-      editorRef.current = editor;
+  const handleMount = useCallback((editor: Editor) => {
+    editorRef.current = editor;
+    editor.user.updateUserPreferences({ colorScheme: "dark" });
 
-      // Match the app's dark theme
-      editor.user.updateUserPreferences({ colorScheme: "dark" });
+    api.getCanvas(slug)
+      .then((data) => {
+        if (data?.document) loadSnapshot(editor.store, data);
+        setStatus("ready");
+      })
+      .catch(() => setStatus("ready"));
 
-      // Restore canvas from backend
-      api
-        .getCanvas(slug)
-        .then((data) => {
-          if (data && data.document) {
-            loadSnapshot(editor.store, data);
-          }
-          setStatus("ready");
-        })
-        .catch(() => setStatus("ready"));
+    const unsub = editor.store.listen(() => {
+      setStatus("saving");
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(async () => {
+        try {
+          await api.saveCanvas(slug, getSnapshot(editor.store));
+          setStatus("saved");
+        } catch {
+          setStatus("error");
+        }
+      }, SAVE_MS);
+    }, { source: "user", scope: "document" });
 
-      // Autosave on every user edit
-      const unsubscribe = editor.store.listen(
-        () => {
-          setStatus("saving");
-          if (saveTimeout.current) clearTimeout(saveTimeout.current);
-          saveTimeout.current = setTimeout(async () => {
-            try {
-              const snapshot = getSnapshot(editor.store);
-              await api.saveCanvas(slug, snapshot);
-              setStatus("saved");
-            } catch {
-              setStatus("error");
-            }
-          }, SAVE_DEBOUNCE_MS);
-        },
-        { source: "user", scope: "document" }
-      );
+    return unsub;
+  }, [slug]);
 
-      return () => unsubscribe();
-    },
-    [slug]
-  );
-
-  useEffect(() => {
-    return () => {
-      if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    };
-  }, []);
-
-  const handleToggleGrid = () => {
-    const next = !gridMode;
-    setGridMode(next);
-    applyGridMode(next);
+  const toggleGrid = () => {
+    const next = !grid;
+    setGrid(next);
+    editorRef.current?.updateInstanceState({ isGridMode: next });
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      {/* ── HUD ─────────────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          zIndex: 10,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        {/* Grid / snap toggle */}
+    /* .project-canvas-pane: flex:1, position:relative, overflow:hidden — defined in CSS */
+    <div className="project-canvas-pane">
+
+      {/* HUD sits above tldraw at z-index:300, top-left to avoid tldraw's own panels */}
+      <div className="canvas-hud">
         <button
-          onClick={handleToggleGrid}
-          title={
-            gridMode
-              ? "Grid snap on — shapes and arrows snap to grid (like Excalidraw). Click to turn off."
-              : "Turn on grid snap — shapes and arrows will snap to a grid as you draw."
-          }
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: 0.5,
-            padding: "4px 10px",
-            borderRadius: 3,
-            background: gridMode ? "var(--pin-active)" : "var(--card-bg)",
-            border: `0.5px solid ${gridMode ? "var(--pin-active)" : "var(--card-border)"}`,
-            color: gridMode ? "#1c1c1e" : "var(--ink-muted)",
-            cursor: "pointer",
-            transition: "background 0.15s, color 0.15s, border-color 0.15s",
-          }}
+          className={`hud-btn${grid ? " on" : ""}`}
+          onClick={toggleGrid}
+          title={grid ? "Grid snap on — click to disable" : "Enable grid snap"}
         >
-          {gridMode ? "⊞ snap on" : "⊟ snap off"}
+          {grid ? "grid on" : "grid"}
         </button>
 
-        {/* Autosave pill */}
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: 0.5,
-            padding: "4px 10px",
-            borderRadius: 3,
-            background: "var(--card-bg)",
-            border: "0.5px solid var(--card-border)",
-            color: STATUS_COLOR[status],
-          }}
+        <Link
+          to={`/project/${slug}/canvas`}
+          className="hud-btn"
+          style={{ textDecoration: "none" }}
+          title="Fullscreen canvas"
         >
-          {status === "loading" && "loading…"}
-          {status === "ready" && "ready"}
-          {status === "saving" && "saving…"}
-          {status === "saved" && "saved"}
-          {status === "error" && "save failed"}
-        </div>
+          ⤢
+        </Link>
+
+        <SavePill status={status} />
       </div>
 
-      {/* ── Canvas ────────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          height: "70vh",
-          border: "0.5px solid var(--card-border)",
-          borderRadius: 4,
-          overflow: "hidden",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.5)",
-        }}
-      >
+      {/* tldraw fills the entire pane; overflow:hidden on parent clips its side panels */}
+      <div className="canvas-inner">
         <Tldraw onMount={handleMount} />
       </div>
+    </div>
+  );
+}
+
+function SavePill({ status }: { status: Status }) {
+  if (status === "ready" || status === "loading") return null;
+  const label: Partial<Record<Status, string>> = {
+    saving: "saving", saved: "saved", error: "error",
+  };
+  return (
+    <div className="hud-pill">
+      <span className="save-dot" data-s={status} />
+      {label[status]}
     </div>
   );
 }
